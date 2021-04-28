@@ -1,0 +1,28 @@
+Motivation --> As everything is moving towards Automation we got idea to automate our design works. 
+With the help of Python and its modules we are trying to make the tired and time consuming work
+easy and finish within just some few minutes.
+It is an awesome opportunity to integrate our knowledge of 3 years of engineering with the computer programming.
+
+Softwares used :
+1) Python --> Programming Language to develop program.
+2) AutoCAD --> To design Machine Elemnts.
+3) VS Code --> Visual Studio Code to write Python program.
+
+Modules Used : 
+1) Math --> To perform Mathematical Function
+2) Matplotlib --> To Plot Graphs, SFD, BMD.
+3) Turtle --> A Drawing Module of Python to plot CNC Drawing.
+4) Tkinter --> An API to create GUI(Graphical User Interface).
+5) PyAutoCAD --> An API to send commands to AutoCAD from Python.
+
+Appln :
+1) To make design calculations easy to understand and visualise.
+
+Advantages : 
+1) Save time for design.
+2) Save time for calculations.
+
+CNC : 
+1) Absolute Programming Method --> We used this
+2) Incremental Programming Method
+
