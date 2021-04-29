@@ -227,6 +227,7 @@ class HollowShaft:
         self.Tmax = None
         self.Tmean = None
         self.Mmax = None
+        self.TE = 0;self.ME=0
 
     def validing_param(self):
         self.P = chcek_param('Power',self.P,0)
@@ -268,8 +269,10 @@ class HollowShaft:
         self.validing_param()
         print(self.Tmax,self.tau,sep='\t\t')
         # Calcuating by T/J = G0/L
+        print(self.TE,self.Tmax,self.ME,self.tau,self.G,self.L,self.theta,sep="  ")
         T_J = ((self.TE*16)/(self.tau*pi))  #tamx = pi/16  * tau * (D^4 - d^4)/D  thus--->  (D^4 - d^4)/D = (Tmax*16) / (pi*tau) ... eqn_1
         J = self.TE/(self.G * self.theta * self.L)  # T/J = G0/L thus--->   J = (T*L)/(G*0) ... eqn_2
+        print(T_J,J)
         d1_d2 = J * 32 /pi #J = pi/32 * (D^4 - d^4) thus--->    (D^4 - d^4) = J * 32 / pi ... eqn_3
         # Thus from equation 1 & 3
         self.D_G0 = d1_d2/T_J #  (D^4 - d^4)/D = T_J and from eqn_3 we get (D^4 - d^4) thus solved.... 
@@ -544,7 +547,7 @@ def TK_HS():
         k = ke.get()
         hs = HollowShaft(P,W,rpm,fos,t_r,sys,syb,L,k,theta,G,pos)
         #if tor==0:
-        tor = hs.calc_twisting_moment()
+        #tor = hs.calc_twisting_moment()
         dia1,dia2 = hs.calc_diameter()
         # elif tor!=0:
         #     dia1,dia2 = hs.calc_diameter()

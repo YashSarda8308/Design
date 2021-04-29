@@ -1,0 +1,17 @@
+Given Parameters 
+
+ Power Given	:100000.0N
+Factor of Safety Selected	:1.0
+
+
+Forces given	-->
+Shear Yield Strengrth:70.0N
+Shear compression Strengrth:125.0N
+Shear Stress:50.0N
+Dimensions of your Design Pin
+
+Diameter of rod	: 43.65mm
+Diameter of Knuckle Pin	: 37mm
+Thickness of single eye	: 55.56mm
+Thickness of Fork	: 33.74mm
+Outside Diameter of Eye	: 74.0mm
