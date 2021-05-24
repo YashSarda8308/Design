@@ -6,7 +6,7 @@ from tkinter import messagebox as mbox
 from csv import DictWriter
 from tkinter.constants import N, SEL_FIRST, W
 import pdb
-
+from pyautocad import Autocad, APoint
 formulaes = '''
         For Shaft subjected to twisting Moment
 
@@ -147,8 +147,8 @@ class SolidShaft:
         
         self.fos = chcek_param('FOS',self.fos,1)
         self.Tratio = chcek_param('Ratio',self.Tratio,0)
-        self.theta = chcek_param('Theta',self.theta,0)
-        self.G = chcek_param('Modulus Of Rigidity',self.G,0)
+        self.theta = math.radians(chcek_param('Theta',self.theta,0))
+        self.G = chcek_param('Modulus Of Rigidity',self.G,0) *(10**3)
         self.N = chcek_param('RPM',self.N,0)
         self.tau = chcek_param('Shear Stress',self.tau,200)
         self.sigma_b = chcek_param('Bending Stress',self.sigma_b,0)
@@ -197,7 +197,7 @@ class SolidShaft:
         try:
             self.d_m = (self.ME * 32)/(pi * self.sigma_b)
             self.d_m = self.d_m**(1/3)
-        except:
+        except Exception:
             self.d_m=0
         print(math.ceil(self.d_t),math.ceil(self.d_m))
         self.d = max(self.d_t,self.d_m)
@@ -209,9 +209,20 @@ class SolidShaft:
         self.mass = pi * (r**2) * 100* 0.0079   
         print(self.mass)
         return self.mass
+    def draw_drawing(self):
+        r = self.d//2 + 1
+        acad = Autocad(True)
+        circle1 = acad.model.AddCircle(APoint(r,r),r)
+        #circle1.Extrude(100,1)
+        #acad.best_interface(circle1)
+        acad.prompt("Extrude")
+        # acad.get_selection(circle1)
+        # acad.prompt("100")
+        acad.model.AddDimDiametric(APoint(0,r),APoint(r*2,r),1)#,math.radians(45))
+        #acad.app.ZoomExtents()
     
 class HollowShaft:
-    def __init__(self,Power=None,Weight=None,rpm=None,fos=1,T_ratio = None,shearStress=None,bendingStress=None,Length=1,k=None,theta=None,G=None,position=None):
+    def __init__(self,Power=0,Weight=0,rpm=0,fos=1,T_ratio = 0,shearStress=0,bendingStress=0,Length=1,k=0.5,theta=0,G=0,position="None"):
         self.P = Power
         self.W = Weight
         self.tau = shearStress
@@ -224,23 +235,25 @@ class HollowShaft:
         self.Tratio = T_ratio
         self.k = k
         self.position = position.lower()
-        self.Tmax = None
-        self.Tmean = None
-        self.Mmax = None
+        self.Tmax = 0
+        self.Tmean = 0
+        self.Mmax = 0
+        self.Mmean = 0
         self.TE = 0;self.ME=0
 
     def validing_param(self):
+        print("validing param running....")
         self.P = chcek_param('Power',self.P,0)
         self.W = chcek_param('Weight',self.W,0)
         if (self.P == 0 and self.W==0) or (self.P == False and self.W==False):
            mbox.showinfo('\aInvalid Value','Please give valid Loads value correctly')
         self.tau = chcek_param('Shear Stress',self.tau,0)
         self.sigma_b = chcek_param('Bending Stress',self.sigma_b,0)
-        self.L = chcek_param('Length',self.L,1)
+        self.L = chcek_param('Length',self.L,1)*1000
         self.N = chcek_param('RPM',self.N,0)
         self.fos = chcek_param('FOS',self.fos,1)
-        self.theta = chcek_param('Theta',self.theta,0)
-        self.G = chcek_param('Modulus of rigidity',self.G,0)
+        self.theta = math.radians(chcek_param('Theta',self.theta,0))
+        self.G = chcek_param('Modulus of rigidity',self.G,0) * (10**3)
         self.Tratio = chcek_param('Ratio',self.Tratio,0)
         self.k = chcek_param('Diameter Ratio',self.k,0.5)
         if (self.sigma_b==0 and self.tau==0):
@@ -248,48 +261,101 @@ class HollowShaft:
         return self.fos,self.Tratio,self.N,self.tau,self.P,self.W,self.L,self.sigma_b,self.k,self.G,self.theta
         
     def calc_all_moment(self):
+        print("calc all moment running....")
         print(type(self.fos),self.fos)
         self.tau = self.tau/self.fos
         self.sigma_b = self.sigma_b/self.fos
-        #self.Tratio != None or self.Tratio!=0 or self.Tratio!=' ' or self.Tratio!='': 
-        self.Tmean =  math.ceil((self.P*60)/(2*pi*self.N)) * (10**3)
-        self.Tmax = self.Tmean * (1 + self.Tratio/100)
+        #self.Tratio != None or self.Tratio!=0 or self.Tratio!=' ' or self.Tratio!='':
+        try: 
+            self.Tmean =  math.ceil((self.P*60)/(2*pi*self.N) * (10**3))
+            self.Tmax = self.Tmean * (1 + self.Tratio/100)
+        except Exception as ex:
+            print(ex,"Line NO -> 271",sep="\n")
+            self.Tmean,self.Tmax = 0,0
         if self.position == 'center':
             self.Mmean = self.W * self.L /4 
         else:
             self.Mmean = self.W * self.L #N-mm
         self.Mmax = self.Mmean * (1 + self.Tratio/100)
-        
+        print(self.Mmax,"--> Mmax ",self.Mmean,"--> Mmean")
         self.TE = math.sqrt(self.Mmax**2 + self.Tmax**2)
         self.ME = 0.5*(self.Mmax + math.sqrt(self.Mmax**2 + self.Tmax**2))
         return r(self.Tmax,2),r(self.Mmax,2),r(self.Mmean,2),r(self.Tmean,2),r(self.TE,2),r(self.ME,2)
     
         
     def calc_diameter(self):
+        print("calc diameter running....")
         self.validing_param()
+        self.calc_all_moment()
         print(self.Tmax,self.tau,sep='\t\t')
         # Calcuating by T/J = G0/L
         print(self.TE,self.Tmax,self.ME,self.tau,self.G,self.L,self.theta,sep="  ")
-        T_J = ((self.TE*16)/(self.tau*pi))  #tamx = pi/16  * tau * (D^4 - d^4)/D  thus--->  (D^4 - d^4)/D = (Tmax*16) / (pi*tau) ... eqn_1
-        J = self.TE/(self.G * self.theta * self.L)  # T/J = G0/L thus--->   J = (T*L)/(G*0) ... eqn_2
-        print(T_J,J)
-        d1_d2 = J * 32 /pi #J = pi/32 * (D^4 - d^4) thus--->    (D^4 - d^4) = J * 32 / pi ... eqn_3
+        T_J= ((self.TE*16)/(self.tau*pi)) #equation no. 1 
+        #tamx = pi/16  * tau * (D^4 - d^4)/D  
+        # thus--->  (D^4 - d^4)/D = (Tmax*16) / (pi*tau) ... eqn_1
+        ''' T_J = (D^4 - d^4)/D'''
+        try:
+            J = (self.TE * self.L)/(self.G * self.theta)  
+            # T/J = G0/L thus--->   J = (T*L)/(G*0) 
+            print(T_J,"-->T_J\n",J,"-->J")
+            ''' J = pi/32 *(D^4 - d^4)'''
+            
+            #J = pi/32 * (D^4 - d^4) 
+            # thus--->    (D^4 - d^4) = J * 32 / pi ... eqn_2
+            d1_d2 = J * 32 /pi 
+            '''d1_d2 = D^4 - d^4
+             T_J = (D^4 - d^4)/D
+             i.e.
+             d1_d2 / D = T_J
+             i.e.
+             D = d1_d2 / T_J
+             '''
+            self.twisiting_OD = r(d1_d2/T_J,3)
+            self.twisiting_ID =  max(r((self.twisiting_OD**4 - J)**(1/4),3),self.twisiting_OD*self.k)
+            #  (D^4 - d^4)/D = T_J 
+            # and from eqn_3 we get (D^4 - d^4) thus solved.... 
+            #self.Id_g0 = (self.D**4 - J) ** (1/4)
+        except Exception as ex:
+            print(ex,"\n\tLine NO -> 297")
+            J,self.twisiting_OD,self.twisiting_ID = 0,0,0
         # Thus from equation 1 & 3
-        self.D_G0 = d1_d2/T_J #  (D^4 - d^4)/D = T_J and from eqn_3 we get (D^4 - d^4) thus solved.... 
-        self.d_g0 = (self.D**4 - J) ** (1/4)
         # solving by T/J = tau/r
-        D_T = (self.TE*16)/((self.tau*pi)*(1-(self.k**4)))
-        self.D_T = D_T**(1/3)
-        self.d_t = self.D*self.k
-        self.D = max(self.D_G0,self.D_T)
-        self.d = max(self.d_t,self.d_g0) 
-        return r(self.D,2),r(self.d,2)
+        try:
+            D_T = (self.TE*16)/((self.tau*pi)*(1-(self.k**4)))
+            self.bending_OD = D_T**(1/3)
+            self.bending_Id = self.bending_OD*self.k
+        except Exception as ex:
+            print(ex,"\n\tLine No->306")
+            self.bending_OD,self.bending_Id=0,0
+
+        self.OD = max(self.bending_OD,self.twisiting_OD)
+        self.Id = max(self.bending_Id,self.twisiting_ID) 
+        return r(self.OD,2),r(self.Id,2)
 
     def calc_mass(self):
-        R,r = self.D/20,self.d/20
+        R,r = self.OD/20,self.Id/20
         vol = pi * ((R**2) - (r**2)) * 10
         self.mass = vol * 7.9
         return self.mass
+    def drawing(self):
+        Or = self.OD//2 + 1
+        Ir = self.Id/2+1
+        acad = Autocad(True)
+        circle1 = acad.model.AddCircle(APoint(Or,Or),Or)
+        circle2 = acad.model.AddCircle(APoint(Or,Or),Ir)
+        #circle1.Extrude(100,1)
+        #acad.best_interface(circle1)
+        acad.prompt("Extrude")
+        # acad.get_selection(circle1)
+        # acad.prompt("100")
+        acad.model.AddDimDiametric(APoint(0,Or),APoint(Or*2,Or),1)#,math.radians(45))
+        acad.model.AddDimDiametric(APoint(0,Ir),APoint(Ir*2,Ir),5)#,math.radians(45))
+        acad.app.ZoomExtents()
+        lo = [circle1,circle2]
+        #acad.model.AddRegion(lo)
+        #acad.model.Extrude(circle1,100)
+        
+
 
 win = tk.Tk()
 color = win.tk_setPalette('#ebc663')
@@ -302,7 +368,7 @@ tl.pack(fill='x')
 #####    CReating labels for the parametrs
 
 ########   first have to create lable frame and then in this label frame we will add labels
-def TK_SS():
+def TkSolidShaft():
     ss= None
     # win.tk_setPalette('lightblue')
     #swin = tk.Toplevel(win,width=1200,height=720,bd=100)
@@ -397,6 +463,7 @@ def TK_SS():
         pos = pose.get()
         ss = SolidShaft(P,W,rpm,fos,t_r,sys,syb,L,theta,G,pos)
         dia = ss.calc_diameter()
+        ss.draw_drawing()
 
         deb = tk.Toplevel()
         deb.geometry('720x720')
@@ -408,18 +475,18 @@ def TK_SS():
         ttk.Label(deb,text=f'\tPower Given                           {P} Watt',font=('italian',17,'bold')).pack(fill='x')
         ttk.Label(deb,text=f'\tLoad Given                           {W}N',font=('italian',17,'bold')).pack(fill='x')
         ttk.Label(deb,text=f'\tFactor of Safety Given                           {fos}',font=('italian',17,'bold')).pack(fill='x')
-        ttk.Label(deb,text=f'\tTheta Given  0                         {r(ss.theta,2)} - {r(ss.Tmean,2)} N-m',font=('italian',17,'bold')).pack(fill='x')
-        ttk.Label(deb,text=f'\tModulus of Rigidity                           {r(ss.G,2)} - {r(ss.Tmean,2)} N-m',font=('italian',17,'bold')).pack(fill='x')
+        ttk.Label(deb,text=f'\tTheta Given  0                         {r(ss.theta,2)} ',font=('italian',17,'bold')).pack(fill='x')
+        ttk.Label(deb,text=f'\tModulus of Rigidity                           {r(ss.G,2)}',font=('italian',17,'bold')).pack(fill='x')
         ttk.Label(deb,text=f'\tRotation / minute (Rpm)                         {rpm}rpm',font=('italian',17,'bold')).pack(fill='x')
-        ttk.Label(deb,text=f'\tMax Twisting Moment                           {r(ss.Tmax,2)} - {r(ss.Tmean,2)} N-m',font=('italian',17,'bold')).pack(fill='x')
+        ttk.Label(deb,text=f'\tMax Twisting Moment                           {r(ss.Tmax,2)} - {r(ss.Tmean,2)} N-mm',font=('italian',17,'bold')).pack(fill='x')
         ttk.Label(deb,text=f'\tMax Bending Moment                           {ss.Mmax} - {ss.Mmean} N-mm',font=('italian',17,'bold')).pack(fill='x')
         if ss.fos!=1:
             ttk.Label(deb,text=f'\tULtimate Shear stress given                           {sys} N/mm^2',font=('italian',17,'bold')).pack(fill='x')
             ttk.Label(deb,text=f'\tULtimate Bending stress given                           {syb} N/mm^2',font=('italian',17,'bold')).pack(fill='x')
         ttk.Label(deb,text=f'\tShear Stress considered                           {ss.tau}N/mm^2',font=('italian',17,'bold')).pack(fill='x')
         ttk.Label(deb,text=f'\tBending Stress considered                           {ss.sigma_b}N/mm^2',font=('italian',17,'bold')).pack(fill='x')
-        ttk.Label(deb,text=f'\tDiameter of Bending Shaft                      {ss.d_m}mm',font=('italian',17,'bold')).pack(fill='x')
-        ttk.Label(deb,text=f'\tDiameter of Twsiting Shaft                      {ss.d_t}mm',font=('italian',17,'bold')).pack(fill='x')
+        ttk.Label(deb,text=f'\tDiameter of Bending Shaft                      {r(ss.d_m,2)}mm',font=('italian',17,'bold')).pack(fill='x')
+        ttk.Label(deb,text=f'\tDiameter of Twsiting Shaft                      {r(ss.d_t,2)}mm',font=('italian',17,'bold')).pack(fill='x')
         ttk.Label(deb,text=f'\tDiameter of Shaft                      {dia}mm',font=('italian',17,'bold')).pack(fill='x')
         ttk.Label(deb,text=f'\tTwisitng Moment  TE                      {ss.TE}N-mm',font=('italian',17,'bold')).pack(fill='x')
         ttk.Label(deb,text=f'\tBending Moment  ME                    {ss.ME}N-mm',font=('italian',17,'bold')).pack(fill='x')
@@ -454,17 +521,17 @@ def TK_HS():
 
     ## Labels
     k_l = ttk.Label(lf,text="Enter k .\nIf you don't know please leave it blank or type 0 ",font=(6),foreground='blue')#background='#ebc663')
-    p_l= ttk.Label(lf,text='Power to be Transmitted P',font=(14),foreground='blue')#,background='#ebc663')
+    p_l= ttk.Label(lf,text='Power to be Transmitted P in KW',font=(14),foreground='blue')#,background='#ebc663')
     w_l= ttk.Label(lf,text='Load on Shaft W',font=(14),foreground='blue')#,background='#ebc663')
     Rpm_l = ttk.Label(lf,text="Enter Rpm .\nIf you don't know please leave it blank or type 0 ",font=(6),foreground='blue')#,background='#ebc663')
-    Len_l = ttk.Label(lf,text="Enter Length .\nIf you don't know please leave it blank or type 0 ",font=(6),foreground='blue')#,background='#ebc663')
-    bms_l = ttk.Label(lf,text="Enter Bending Stress .\nIf not applicable please leave it blank or type 0 ",font=(6),foreground='blue')#,background='#ebc663')
-    sys_l = ttk.Label(lf,text="Enter Shear Stress Strength of material.\nIf you don't know please leave it blank or type 0 ",font=(6),foreground='blue')#,background='#ebc663')
-    Tor_l = ttk.Label(lf,text="Enter Torque excedence %.\nIf you don't know please leave it blank or type 0 ",font=(6),foreground='blue')#,background='#ebc663')
-    Fos_l = ttk.Label(lf,text="Enter Faactor of Safety.\nIf you don't know please leave it blank or type 1 ",font=(6),foreground='blue')#,background='#ebc663')
-    Pos_l = ttk.Label(lf,text="Enter Position of Load.\nBy default it will be considered as center",font=(6),foreground='blue')#,background='#ebc663')
-    G_l = ttk.Label(lf,text="Enter Modulus of rigidity.\nBy default it will be 0",font=(6),foreground='blue')#,background='#ebc663')
-    theta_l = ttk.Label(lf,text="Enter Theta (0) \n By default it is 0",font=(6),foreground='blue')#,background='#ebc663')
+    Len_l = ttk.Label(lf,text="Enter Length in m.\nIf you don't know please leave it blank or type 0 ",font=(6),foreground='blue')#,background='#ebc663')
+    bms_l = ttk.Label(lf,text="Enter Bending Stress in N/mm2 .\nIf not applicable please leave it blank or type 0 ",font=(6),foreground='blue')#,background='#ebc663')
+    sys_l = ttk.Label(lf,text="Enter Shear Stress Strength of material in N/mm2.\nIf you don't know please leave it blank or type 0 ",font=(6),foreground='blue')#,background='#ebc663')
+    Tor_l = ttk.Label(lf,text="Enter Torque excedence in %.\nIf you don't know please leave it blank or type 0 ",font=(6),foreground='blue')#,background='#ebc663')
+    Fos_l = ttk.Label(lf,text="Enter Factor of Safety.\nIf you don't know please leave it blank or type 1 ",font=(6),foreground='blue')#,background='#ebc663')
+    Pos_l = ttk.Label(lf,text="Select Position of Load.\nBy default it will be considered as center",font=(6),foreground='blue')#,background='#ebc663')
+    G_l = ttk.Label(lf,text="Enter Modulus of rigidity in GN/m2.\nBy default it will be 0",font=(6),foreground='blue')#,background='#ebc663')
+    theta_l = ttk.Label(lf,text="Enter Theta (0) in degrees \n By default it is 0",font=(6),foreground='blue')#,background='#ebc663')
     
 
     p_l.grid(row=0,column=0,padx=20,pady=10)
@@ -549,6 +616,7 @@ def TK_HS():
         #if tor==0:
         #tor = hs.calc_twisting_moment()
         dia1,dia2 = hs.calc_diameter()
+        hs.drawing()
         # elif tor!=0:
         #     dia1,dia2 = hs.calc_diameter()
         deb = tk.Toplevel()
@@ -558,7 +626,7 @@ def TK_HS():
         deb.bg='white'
         deb.title('Dimensions of your Design Shaft')    
         ttk.Label(deb,text=f'\n\n\tTorque Ratio given \t{hs.Tratio}% ',font=('italian',17,'bold')).pack(fill='x')
-        ttk.Label(deb,text=f'\tPower Given                           {P} Watt',font=('italian',17,'bold')).pack(fill='x')
+        ttk.Label(deb,text=f'\tPower Given                           {P} KW',font=('italian',17,'bold')).pack(fill='x')
         ttk.Label(deb,text=f'\tLoad Given                           {W}N',font=('italian',17,'bold')).pack(fill='x')
         ttk.Label(deb,text=f'\tFactor of Safety Given                           {fos}',font=('italian',17,'bold')).pack(fill='x')
         ttk.Label(deb,text=f'\tTheta Given  0                         {r(hs.theta,2)} - {r(hs.Tmean,2)} N-m',font=('italian',17,'bold')).pack(fill='x')
@@ -571,10 +639,12 @@ def TK_HS():
             ttk.Label(deb,text=f'\tULtimate Bending stress given                           {syb} N/mm^2',font=('italian',17,'bold')).pack(fill='x')
         ttk.Label(deb,text=f'\tShear Stress considered                           {hs.tau}N/mm^2',font=('italian',17,'bold')).pack(fill='x')
         ttk.Label(deb,text=f'\tBending Stress considered                           {hs.sigma_b}N/mm^2',font=('italian',17,'bold')).pack(fill='x')
-        ttk.Label(deb,text=f'\tDiameter of Bending Shaft                      {hs.d_m}mm',font=('italian',17,'bold')).pack(fill='x')
-        ttk.Label(deb,text=f'\tDiameter of Twsiting Shaft                      {hs.D_T}mm',font=('italian',17,'bold')).pack(fill='x')
-        ttk.Label(deb,text=f'\tDiameter of Shaft using 0                     {hs.D_G0}mm',font=('italian',17,'bold')).pack(fill='x')
-        ttk.Label(deb,text=f'\tDiameter of Shaft using T/J                     {hs.D}mm',font=('italian',17,'bold')).pack(fill='x')
+        ttk.Label(deb,text=f'\tOuter Diameter of Bending Shaft                      {hs.bending_OD}mm',font=('italian',17,'bold')).pack(fill='x')
+        ttk.Label(deb,text=f'\tOuter Diameter of Twsiting Shaft                     {hs.twisiting_OD}mm',font=('italian',17,'bold')).pack(fill='x')
+        ttk.Label(deb,text=f'\tInner Diameter of Twisting Shaft                     {hs.twisiting_ID}mm',font=('italian',17,'bold')).pack(fill='x')
+        ttk.Label(deb,text=f'\tDiameter of Shaft Bending Shaft                     {hs.bending_Id}mm',font=('italian',17,'bold')).pack(fill='x')
+        ttk.Label(deb,text=f'\tSafe Outer Diameter for Shaft                     {hs.OD}mm',font=('italian',17,'bold')).pack(fill='x')
+        ttk.Label(deb,text=f'\tSafe Inner Diameter for Shaft                   {hs.Id}mm',font=('italian',17,'bold')).pack(fill='x')
         ttk.Label(deb,text=f'\tTwisitng Moment  TE                      {hs.TE}N-mm',font=('italian',17,'bold')).pack(fill='x')
         ttk.Label(deb,text=f'\tBending Moment  ME                    {hs.ME}N-mm',font=('italian',17,'bold')).pack(fill='x')
         ttk.Label(deb,text=f'\tpostition Given                 {hs.position}',font=('italian',17,'bold')).pack(fill='x')
@@ -584,7 +654,7 @@ def TK_HS():
             url = ''
             url = filedialog.asksaveasfile(mode = 'w',defaultextension='.pdf',filetypes = (('Text Files','*.txt'),('Word File','*.word'),('PDF File','*.pdf'),('CSv File','*.csv'),('All Files','*.*')))           
             if url:
-                url.write(f'Given Parameters \n\n Power Given\t:{P}N\nTorque / Twisting Moment\t:{tor}\n\n\nShear Stress given\t-->\t:{sys}N\nRotation/Minute (Rpm)\t-->\t{rpm}\nOuter Diameter of Shaft\t-->\t{dia1}mm\nInner Diameter of Shaft\t-->\t{dia2}mm')
+                url.write(f'Given Parameters \n\n Power Given\t:{P}N\nTorque / Twisting Moment\t:{hs.TE}\n\n\nShear Stress given\t-->\t:{sys}N\nRotation/Minute (Rpm)\t-->\t{rpm}\nOuter Diameter of Shaft\t-->\t{dia1}mm\nInner Diameter of Shaft\t-->\t{dia2}mm')
                 url.close()
             else:
                 return
@@ -653,8 +723,8 @@ def TK_CS():
         k = ke.get()
         t_r = tore.get()
 
-        hs = HollowShaft(P,sys,rpm,k,fos,t_r)
-        ss = SolidShaft(P,sys,rpm,fos,t_r)
+        hs = HollowShaft(P,shearStress=sys,rpm=rpm,k=k,fos=fos,position='center',T_ratio=t_r)
+        ss = SolidShaft(P,shearStress=sys,rpm=rpm,fos=fos,position='center',T_ratio=t_r)
         #if tor==0:
         dia = ss.calc_diameter()
         dia1,dia2 = hs.calc_diameter()
@@ -688,7 +758,7 @@ def TK_CS():
                 return
         get_btn = ttk.Button(deb,text='Get Dimension to the file',command=get_btn)
         get_btn.pack(pady = 20)
-        return 
+        return 0
 
     s_btn.config(command=submit_HS)
     cswin.mainloop()
@@ -699,7 +769,7 @@ def TK_CS():
 
 ss_btn = tk.Button(win,text='\aDesign Solid Shaft',width=100,height=5,bg='lightblue',border=35)
 ss_btn.pack(padx=50,pady = 50)
-ss_btn.config(command=TK_SS)
+ss_btn.config(command=TkSolidShaft)
 hs_btn = tk.Button(win,text='\aDesign Hollow Shaft',width=100,height=5,bd=25)
 hs_btn.pack(padx=50,pady = 50)
 hs_btn.config(command=TK_HS)
