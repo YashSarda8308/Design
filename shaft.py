@@ -291,9 +291,9 @@ class HollowShaft:
             self.Mmean = self.W * self.L #N-mm
         self.Mmax = max(self.Mmax,self.Mmean * (1 + self.Tratio/100))
         print(self.Mmax,"--> Mmax ",self.Mmean,"--> Mmean")
-        self.TE = self.TE,math.sqrt(self.Mmax**2 + self.Tmax**2)
+        self.TE = max(self.TE,math.sqrt(self.Mmax**2 + self.Tmax**2))
         self.ME = 0.5*(self.Mmax + math.sqrt(self.Mmax**2 + self.Tmax**2))
-        return r(self.Tmax,2),r(self.Mmax,2),r(self.Mmean,2),r(self.Tmean,2),r(self.TE,2),r(self.ME,2)
+        return self.Tmax,self.Mmax,self.Mmean,self.Tmean,self.TE,self.ME
     
         
     def calc_diameter(self):
@@ -352,7 +352,7 @@ class HollowShaft:
         return self.mass
     def draw_drawing(self):
         Or = self.OD//2 + 1
-        Ir = self.Id/2+1
+        Ir = self.Id//2 + 1
         acad = Autocad(True)
         circle1 = acad.model.AddCircle(APoint(Or,Or),Or)
         circle2 = acad.model.AddCircle(APoint(Or,Or),Ir)

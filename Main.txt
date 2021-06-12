@@ -26,3 +26,12 @@ CNC :
 1) Absolute Programming Method --> We used this
 2) Incremental Programming Method
 
+Contribution:
+Ishan : Identifying errors, Modifying the formulaes.
+Prasad : Modifying the formulaes, making reports.
+Harshal : GUI.
+ME : Coding, Solving the errors identified by Ishan.  
+
+Last 1 Month:
+AutoCAD error solved and run sucecessfully for Shaft, CNC Tracking.
+
