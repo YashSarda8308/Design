@@ -116,7 +116,7 @@ def submit():
 ##                lf.add_radiobutton(label=i,variable=P*force.get(i))
                 
     except ValueError:
-        mbox.showerror('Invalid Value','Plesae Enter Power correctly')
+        mbox.showerror('Invalid Value','Please Enter Power correctly')
     ## Now Getting Forces Correctly    
     else:
         try:
@@ -163,41 +163,31 @@ def submit():
                     
                     
     ## Diameter of rod             
-    a1 = st*pi/4
+    a1 = st*pi/4 #a1 => area affecting
     d = round(((P/a1)**0.5 + 1),2)
 
     ## Diameter of Knuckle Pin
-    a2 = 2*pi*tau/4
-    Dp = round((P/a2)**0.5) + 1
+    a2 = 2*pi*tau/4 #a2 => area affecting
+    Dp = max(round((P/a2)**0.5) + 1,d)
 
     ## Thickness of Single Eye
-    t1 = round((1.25*d + 1),2)
-    t2 = round((P/(sc*Dp) + 1),2)
-    if t1>t2:
-        t = t1
-    elif t1<t2:
-        t = t2
+    t1 = max(round((1.25*d + 1),2),round((P/(sc*Dp) + 1),2))
 
     ## Thickness of Fork
-    t3 = round(((0.75*d) + 1),2)
-    t4 = round(((P/(sc*Dp*2)) + 1),2)
-    if t3>t4 :
-        T1 = t3
-    else :
-        T1 = t4
+    t = max(round(((0.75*d) + 1),2),round(((P/(sc*Dp*2)) + 1),2))
 
     ## Diameter
     a5 = P/(tau*t)
-    D = round((a5+Dp+1),2)
+    D = max(round((a5+Dp+1),2),2*d)
     
     
 
     ## Analysis of Fork end in Tension failure
-    a6 = 2*T1*(D-Dp)
+    a6 = 2*t*(D-Dp)
     st1 = round((P/a6),2)
 
     ## Analysis of Fork end in shear
-    a7 = 2*T1*(D-Dp)
+    a7 = 2*t*(D-Dp)
     tau1 = round((P/a7),2)
 
 ##    print(d,Dp,st1,tau1,t,T1,end='\n',sep=' ')
@@ -214,8 +204,8 @@ def submit():
     ttk.Label(deb,text=f'\n\nForces given\nShear Yield Strengrth:\t{Syt}N\nShear compression Strengrth:\t{Syc}N\nShear Stress:\t{Sys}N',font=('italian',15,'bold')).pack(fill='x')
     ttk.Label(deb,text=f'Diameter of rod                      {d}mm',font=('italian',17,'bold')).pack(fill='x')
     ttk.Label(deb,text=f'Diameter of Knuckle Pin             {Dp}mm',font=('italian',17,'bold')).pack(fill='x')
-    ttk.Label(deb,text=f'Thickness of single eye             {t}mm',font=('italian',17,'bold')).pack(fill='x')
-    ttk.Label(deb,text=f'Thickness of Fork                   {T1}mm',font=('italian',17,'bold')).pack(fill='x')#,font=('italian',20,'bold'))
+    ttk.Label(deb,text=f'Thickness of single eye             {t1}mm',font=('italian',17,'bold')).pack(fill='x')
+    ttk.Label(deb,text=f'Thickness of Fork                   {t}mm',font=('italian',17,'bold')).pack(fill='x')#,font=('italian',20,'bold'))
     ttk.Label(deb,text=f'Outside Diameter of Eye             {D}mm',font=('italian',17,'bold')).pack(fill='x')#,font=('italian',20,'bold'))
     ttk.Label(deb,text='Analysis of failure of fork end in tension and shear',font=('italian',17,'bold')).pack(fill='x')#,font=('italian',20,'bold'))
     ttk.Label(deb,text='Analysis of failure of fork end in tension',font=('italian',17,'bold')).pack(fill='x')#,font=('italian',20,'bold'))

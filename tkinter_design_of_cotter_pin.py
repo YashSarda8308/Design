@@ -15,14 +15,14 @@ p4 = round(pi/4,3)
 def solve_poly(a,b,c):
     p = np.poly1d([a,b,c])
     roots = p.r
-    print(roots)
+    print("\t\tRoots",roots,sep="--->")
     r = float(max(roots))
     return r
 def solve_quadra(a,b,c):
     d = (b**2)-(4*a*c)
     sol1 = (-b-srt(d))/(2*a)
     sol2 = (-b+srt(d))/(2*a)
-    print(sol1,sol2,sep = ' ---> ')
+    print("\t\tRoots",sol1,sol2,sep = ' ---> ')
     r = max(sol1,sol2)
     return r
 
@@ -31,26 +31,24 @@ def solve_quadra(a,b,c):
 #print(solve_quadra(2,-5,3))
 class CotterPin:
     IV = "Invalid Value"
-    def __init__(self,Power,Fos=1,Syt=None,Syc=None,Sys=None):
+    def __init__(self,Power,FactorOfSafety=1,Syt=None,Syc=None,Sys=None):
         self.Power = Power
-        self.Fos = Fos
+        self.FOSs = FactorOfSafety
         self.Syt = Syt
         self.Syc = Syc
         self.Sys = Sys
 
+
     ## Setting Variables
-    fos = None
-    P = None 
     #Efos = None
     #EP = None
     ''' Checking Fos '''
     def check_fos(self):
-        global fos
         try:
-            fos = float(self.Fos)
+            fos = float(self.FOSs)
             if fos <= 0:
                 mbox.showerror('Invalid Value','Setting FOS to 1.5')
-                fos = 1.5
+                fos = 1
                 print(CotterPin.IV)
             print('\t',fos,'    --->'.center(25," "),'FOS')
         except ValueError:
@@ -59,8 +57,7 @@ class CotterPin:
         else:
             return fos
     '''Checking Power '''        
-    def check_Power(self):
-        global P
+    def check_power(self):
         try:
             P = float(self.Power) 
             if P <= 0:
@@ -75,11 +72,9 @@ class CotterPin:
             return P
  
     ''' Checking Forces '''
-    sc = None
-    st = None
-    tau = None 
+    
     def check_forces(self):
-        global st, tau, sc
+        fos = self.check_fos()
         try:
             Syt = float(self.Syt)
             Syc = float(self.Syc)
@@ -125,78 +120,67 @@ class CotterPin:
                         #Syt = st*fos
                         sc = round(Syc/fos , 3)
                         tau = round(Sys/fos , 3)
-            return Syt, Sys, Syc
-        print(st, sc, tau, P, fos, Syt, Syc, Sys, sep="\n")
-        return st, sc, tau, P, fos, Syt, Syc, Sys
+            #return Syt, Sys, Syc
+        print(st, sc, tau, fos, Syt, Syc, Sys, sep="\n")
+        return st, sc, tau, fos
 
     def check_all_variables(self):
-        global fos, P, st, sc, tau
-        self.check_fos()
-        self.check_Power()
-        self.check_forces()           
-        return P, fos, st, sc, tau  
+        #global fos, P, st, sc, tau
+        #self.fos = self.check_fos()
+        self.P = self.check_power()
+        self.st,self.sc,self.tau,self.fos = self.check_forces()           
+        return self.fos,self.P,self.st,self.sc,self.tau  
     ## Doing Calculations                              
-    d = None  ## Diameter of rod
-    t = None  ## Thickness of rod
-    d2 = None
-    a = None
-    t1 = None
-    d1 = None
-    d4 = None
-    b = None
-    L = None  ## Length Of Cotter
-    e = None
+   
 
     ## Defining Function
     def design_of_rod_under_tension(self):
-        global d
-        d = math.ceil(srt(P/(st*p4)))
-        print('\t ',round(d,2),'mm',' ---> '.center(23," "),'d')
-        return d 
+        self.d = math.ceil(srt(self.P/(self.st*p4)))
+        print('\t ',round(self.d,2),'mm',' ---> '.center(23," "),'d')
+        return self.d 
     
     def design_of_spigot_end_tensile(self):
-        global d2, t
-        d2 = srt(P/((p4-0.25)*st))
-        t = d2/4
-        print('\t',round(d2,2),'mm',' ---> '.center(20," "),'d2')
-        print('\t',round(t,2),'mm',' ---> '.center(20," "),'t')
-        return d2 , t
+        print(self.P,self.st)
+        self.d2 = srt(self.P/((p4-0.25)*self.st))
+        self.t = math.ceil(self.d2/4)
+        print('\t',round(self.d2,2),'mm',' ---> '.center(20," "),'d2')
+        print('\t',round(self.t,2),'mm',' ---> '.center(20," "),'t')
+        return self.d2 , self.t
     def design_of_spigot_considering_crushing(self):
-        global d2,t
-        d2 = math.ceil(srt((P*4)/sc))
-        t = math.ceil(d2/4)
-        print('\t',round(d2,2),'mm',' ---> '.center(20," "),'d2')
-        print('\t',round(t,2),'mm',' ---> '.center(20," "),'t') 
-        return d2,t, True
+        self.d2 = math.ceil(srt((self.P*4)/self.sc))
+        self.t = math.ceil(self.d2/4)
+        print('\t',round(self.d2,2),'mm',' ---> '.center(20," "),'d2')
+        print('\t',round(self.t,2),'mm',' ---> '.center(20," "),'t') 
+        return self.d2,self.t
     
     def shearing_failure_of_spigot(self):
-        global a
-        a = math.ceil(P/(tau*d2*2))
-        print('\t',a ,'mm','---> '.center(20," "),'a')
-        return a
+        self.a = math.ceil(self.P/(self.tau*self.d2*2))
+        print('\t',self.a ,'mm','---> '.center(20," "),'a')
+        return self.a
     
-    def my_change_fos(self):
-        global fos,P
-        f = float(input('Please Enter Your Choice for Fos : '))
-        d = CotterPin(P,f,self.Syt,self.Syc,self.Sys)
-        d.run_all()
-    def change_parameters(self):
-        global fos,P
-        d = input("Please change Parameters or increase fos 'Y' add your choice of fos 'N' to change parameters by going out of program ")
-        if d.lower()=='y':
-            self.my_change_fos()        
-        else:
-           print("Change Parameters ")
-           mbox.showerror('Invalid Parameters','Please Enter parameters by retartiung program')
+    # def my_change_fos(self):
+    #     global fos,P
+    #     f = float(input('Please Enter Your Choice for Fos : '))
+    #     d = CotterPin(P,f,self.Syt,self.Syc,self.Sys)
+    #     d.run_all()
+    # def change_parameters(self):
+    #     global fos,P
+    #     d = input("Please change Parameters or increase fos 'Y' add your choice of fos 'N' to change parameters by going out of program ")
+    #     if d.lower()=='y':
+    #         self.my_change_fos()        
+    #     else:
+    #        print("Change Parameters ")
+    #        mbox.showerror('Invalid Parameters','Please Enter parameters by retartiung program')
            
 
            
     def crushing_of_spigot_end(self):
-        sc = P / (d2*t)
+        sc = self.P / (self.d2*self.t)
         if int(sc) == int(self.Syc):
-            return sc
+            return "Both are same"
         if int(sc) < int(self.Syc):
             print(f"\n\tDesign is safe upto this point as {sc} < {self.Syc}\n")
+            return True
         elif int(sc) > int(self.Syc):
              print(f"\n\tDesign is not safe upto this point as {sc} >> {self.Syc}\n")
              self.design_of_spigot_considering_crushing()
@@ -204,62 +188,58 @@ class CotterPin:
                  self.my_change_fos()
              else:
                  self.crushing_of_spigot_end()
-        return 
     o = None
     def spigot_end(self):
         return self.design_of_spigot_end_tensile(), self.crushing_of_spigot_end()
         
     def design_of_spigot_collar(self):
-        t1 = math.ceil(P/(tau*pi*d2))
-        print('\t',t1,'mm',' ---> '.center(20," "),'t1')
-        return t1
+        self.t1 = math.ceil(self.P/(self.tau*pi*self.d2))
+        print('\t',self.t1,'mm',' ---> '.center(20," "),'t1')
+        return self.t1
     
     def design_of_socket_under_tension(self):
-        global o,d1,t,p4
-        A = P/st
-        o = A+(p4*(d2**2)-(d2*t))
+        print("\t\t\tROOTS")
+        A = self.P/self.st
+        o = A+(p4*(self.d2**2)-(self.d2*self.t))
         print('\t\t',o)
-        D1 = solve_quadra(p4,-t,-o)
-        D2 = solve_poly(p4,-t,-o)
-        d1 = math.ceil(max(D1,D2))
-        print('\t',d1,'mm',' ---> '.center(20," "),'d1')
-        return d1
+        D1 = solve_quadra(p4,-1*self.t,-o)
+        D2 = solve_poly(p4,-1*self.t,-o)
+        self.d1 = math.ceil(max(D1**0.25,D2**0.25))
+        print('\t',self.d1,'mm',' ---> '.center(20," "),'d1')
+        return self.d1
     
     def design_of_socket_in_crushing_failure(self):
-        global d4
-        d4 = (P/(sc*t))+d2
-        print('\t',math.ceil(d4),'mm',' ---> '.center(20," "),'d4')
-        return d4
+        self.d4 = math.ceil((self.P/(self.sc*self.t))+self.d2)
+        print('\t',math.ceil(self.d4),'mm',' ---> '.center(20," "),'d4')
+        return self.d4
     
     def design_of_socket_in_shearing_failure(self):
-        global d4
-        c =  math.ceil(P/(2*tau*(d4-d2)))
-        print('\t ',c,'mm',' ---> '.center(20," "),'c')
-        return c
+        self.c =  math.ceil(self.P/(2*self.tau*(self.d4-self.d2)))
+        print('\t ',self.c,'mm',' ---> '.center(20," "),'c')
+        return self.c
     
     def design_of_cotter_considering_shearing_failure(self):
-        global L,e,d,t,b
-        b = math.ceil(P/(tau*2*t))
-        L = math.ceil(4*d)
-        e = math.ceil(1.2*d)
-        print('\t ',b,'mm',' ---> '.center(20," "),'b')
-        print('\t',L,'mm',' ---> '.center(20," "),'L')
-        print('\t',e,'mm',' ---> '.center(20," "),'e')
-        return b,L,e
+        
+        self.b = math.ceil(self.P/(self.tau*2*self.t))
+        self.L = math.ceil(4*self.d)
+        self.e = math.ceil(1.2*self.d)
+        print('\t ',self.b,'mm',' ---> '.center(20," "),'b')
+        print('\t',self.L,'mm',' ---> '.center(20," "),'L')
+        print('\t',self.e,'mm',' ---> '.center(20," "),'e')
+        return self.b,self.L,self.e
     
     def bending_of_cotter(self):
-        global b,t,P,d4,d2
-        z = (t*(b**2))/6
-        m = (P/2)*((d4/6) + (d2/12))
+        #print(self.t,b)
+        z = (t*(self.b**2))/6
+        m = (self.P/2)*((self.d4/6) + (self.d2/12))
         sb = math.ceil(m/z)
-        q = float(self.Syc)*t  ## Because Tkinter takes input in string format so instead of declareing new varialble to forces i directly converted it into float to save memory
+        q = float(self.Syc)*self.t  ## Because Tkinter takes input in string format so instead of declareing new varialble to forces i directly converted it into float to save memory
         s = print(f'MAx Bending Movement ----->  {m}')
-        s
         print(s)
         if float(sb) > float(self.Syc):
             print(f'sb is greater than Syc {sb} >> {self.Syc}')
-            b = math.ceil(srt((m*6)/(q)))
-            print('\t',b,' ---> '.center(20," "),'b')
+            self.b2 = math.ceil(srt((m*6)/(q)))
+            print('\t',self.b2,' ---> '.center(20," "),'b')
             self.bending_of_cotter()
         else:
             print(f'sb is less than Syc {sb} << {self.Syc}')
@@ -275,8 +255,8 @@ class CotterPin:
         self.design_of_cotter_considering_shearing_failure()
         self.bending_of_cotter()
 
-c = CotterPin("200000",1,80,60,0)
-c.run_all()
+# c = CotterPin("200000",1,80,60,50)
+# c.run_all()
 
 
 
@@ -353,9 +333,23 @@ def soln_label_frame():
     deb.geometry('1200x1200')
     lf.pack_forget()
     tl.pack_forget()
+    print("None")
+    PO = pe.get()
+    FOS = fose.get()
+    SYT = syte.get()
+    SYC = syce.get()
+    SYS = syse.get()
+    c = CotterPin(PO,FOS,SYT,SYC,SYS)
+    print(c.Power,c.Syt,c.Syc,c.Sys,c.FOSs,sep='\n')
+    c.run_all()
+    lf.pack_forget()
+    #sf = tk.LabelFrame(win,text = 'YOUR DIMENSIONS')
+    #soln_label_frame()
+
+
     
     deb.title('Dimensions of your Design Pin')
-    ttk.Label(deb,text=f'Power Given                           {c.P}N',font=('italian',17,'bold')).pack(fill='x')
+    ttk.Label(deb,text=f'Power Given                           {c.Power}N',font=('italian',17,'bold')).pack(fill='x')
     ttk.Label(deb,text=f'Factor of Safety Selected             {c.fos}',font=('italian',17,'bold')).pack(fill='x')
     ttk.Label(deb,text=f'\n\nForces given\nShear Yield Strengrth:\t{c.Syt}N\nShear compression Strengrth:\t{c.Syc}N\nShear Stress:\t{c.Sys}N',font=('italian',15,'bold')).pack(fill='x')
     ttk.Label(deb,text=f'Diameter of rod                      {c.d}mm',font=('italian',17,'bold')).pack(fill='x')
@@ -399,23 +393,23 @@ def soln_label_frame():
     
 
         
-    get_btn = ttk.Button(deb,text='Get Dimension to the file',command=get_btn)
+    get_btn = ttk.Button(deb,text='Get Dimension to the file')#,command=get_btn)
     get_btn.pack(pady = 20)
 
-def submit():
-    print("None")
-    PO = pe.get()
-    FOS = fose.get()
-    SYT = syte.get()
-    SYC = syce.get()
-    SYS = syse.get()
-    c = CotterPin(PO,FOS,SYT,SYC,SYS)
-    print(c.P,c.Syt,c.Syc,c.Sys,c.Fos,sep='\n')
-    c.run_all()
-    lf.pack_forget()
-    sf = tk.LabelFrame(win,text = 'YOUR DIMENSIONS')
-    soln_label_frame()
-s_btn.config(command=submit)
+# def submit():
+#     print("None")
+#     PO = pe.get()
+#     FOS = fose.get()
+#     SYT = syte.get()
+#     SYC = syce.get()
+#     SYS = syse.get()
+#     c = CotterPin(PO,FOS,SYT,SYC,SYS)
+#     print(c.Power,c.Syt,c.Syc,c.Sys,c.FOSs,sep='\n')
+#     c.run_all()
+#     lf.pack_forget()
+#     sf = tk.LabelFrame(win,text = 'YOUR DIMENSIONS')
+#     soln_label_frame()
+s_btn.config(command=soln_label_frame)
 
 
 ## creating buttons for strength option
